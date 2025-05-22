@@ -1,0 +1,4 @@
+s = " LD GR1,GR2"
+
+cmd = s.split(" ")
+print(cmd)
