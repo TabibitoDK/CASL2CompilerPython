@@ -10,9 +10,10 @@ INSTRUCTIONS = []
 
 
 class Label:
-   def __init__(self, label, value):
+   def __init__(self, label, value, type):
       self.label = label
       self.value = value
+      self.type = type
 
 class Instruction:
   def __init__(self, label, instruction, operands):
@@ -26,7 +27,7 @@ class Instruction:
 
   def saveLABEL(self):
     if isNewLABEL(self.label):
-        lb = Label(self.label, self.address)
+        lb = Label(self.label, self.address, labelType(self.instruction))
         LABELS.append(lb)
 
 def firstPass(txt):
@@ -37,7 +38,12 @@ def firstPass(txt):
          cmd[0] = None
       Instruction(cmd[0], cmd[1], cmd[2])
    
-   
+
+def secondPass(INSTRUCTIONS):
+   for instruction in INSTRUCTIONS:
+      for op in instruction.operands:
+         if findLabel(op) != -1:
+            op = findLabel(op)
 
 def isNewLABEL(label):
     for lb in LABELS:
@@ -56,3 +62,19 @@ def isDS(instruction):
       return True
    else:
       return False
+
+
+def findLabel(label):
+   loc = 0
+   for lb in LABELS:
+      if lb == label:
+         return loc
+      loc += 1
+   return -1
+
+
+def labelType(instruction):
+   if instruction == "DC":
+      return 0
+   elif instruction == "DS":
+      return 1
