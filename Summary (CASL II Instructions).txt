@@ -1,0 +1,224 @@
+Summary (CASL II Instructions)
+
+1. Types of Instructions
+
+There are three types of CASL II instructions. When writing a program, it is necessary to understand what these are.
+
+1.1 Assembler Instructions
+
+These are what the textbook describes as non-executable statements on pages P.28–P.35. They are instructions that give various directives to the translation program called an assembler. They do not give operational instructions to the COMET II CPU. Therefore, these instructions are not converted into machine language, meaning they are not translated into a specific bit pattern (a combination of 1s and 0s).
+
+CASL II has the following four assembler instructions:
+
+START: Defines the beginning of a program.
+Defines the program's execution start address.
+Defines the entry name to be referenced by other programs.
+END: Explicitly indicates the end of the program.
+DC: Defines a constant.
+DS: Secures (allocates) a memory area.
+However, the DC instruction is converted into a bit pattern corresponding to the value that follows it. The DS instruction is not converted into a bit pattern but secures the necessary memory area. These two function similarly to variable declarations in FORTRAN. In actual programs, they are used to define data values.
+
+
+
+1.2 Machine Instructions
+
+This is explained on pages P.40–P.82 of the textbook. These instructions direct the operation of the COMET II CPU. For this purpose, logic circuits corresponding to these instructions are built into the CPU. These instructions are converted by the assembler into machine language with specific bit patterns, and the logic circuits operate according to those patterns.
+
+At runtime, those bit patterns are stored in the main memory unit. The conversion to a bit pattern is done in the same way as the hand assembler explained in a previous class.
+CASL II has the following 28 machine instructions, which is not a large number.
+
+Mnemonics	Category
+LD, ST, LAD	Data Transfer
+ADDA, SUBA, ADDL, SUBL	Addition / Subtraction
+AND, OR, XOR	Logical Operations
+SLA, SRA, SLL, SRL	Shift Operations
+CPA, CPL	Comparison Operations
+JPL, JMI, JNZ, JZE, JOV, JUMP	Branching
+PUSH, POP	Stack Operations
+CALL, RET	Transfer to and return from subroutine
+SVC, NOP	Other
+
+
+
+1.3 Macro Instructions
+
+This is explained on pages P.83–P.86 of the textbook. A macro instruction is a name given to a collection of several machine instructions that perform a specific function. By simply specifying this name, the entire set of instructions can be executed. This is convenient because it allows you to avoid writing the same routine programs repeatedly by turning frequently used, standard instruction groups into macro instructions. It's similar to a subroutine.
+
+Because they consist of many instructions, the bit pattern converted by the assembler becomes very large.
+CASL II has the following four macro instructions (textbook P.203):
+
+Mnemonic	Description
+IN	Reads character data from an input device (keyboard).
+OUT	Writes character data to an output device (display).
+RPUSH	Stores the contents of the general-purpose registers (GR1, GR2, ..., GR7) onto the stack in that order.
+RPOP	Stores the contents of the stack into the general-purpose registers in the reverse order (GR7, GR6, ..., GR1).
+
+
+
+
+2. How to Write CASL II Programs
+
+2.1 Coding Conventions
+
+Coding is the process of writing a program. Here, we will show the conventions for writing CASL II programs.
+
+A single line in a CASL II program is divided into fields for specific functions: the label field, operation code field, operand field, and comment field. This is shown specifically in Figure 1.
+
+Unlike FORTRAN, these fields are not separated by a fixed number of columns. The functional fields are separated by one or more spaces. Therefore:
+
+Leading spaces are not permitted in the label field. If a space is present at the beginning of a line, the text is interpreted as an operation code, not a label.
+It is not strictly necessary to align the starting position of the operation code, operand, and comment fields on each line. However, aligning the start of each field makes the program easier to understand. It is best to align them as much as possible.
+[Figure 1: How to Write a CASL II Program]
+
+(Label column) (Op Code column) (Operand column) (Comment column)
+
+PGM      START
+         LD       GR1,A
+         ADDA     GR1,B
+         ST       GR1,C
+         OUT      D,E
+         RET
+A        DC       3             ; Store 3 in address A
+B        DC       5             ; Store 5 in address B
+C        DS       1             ; Secure 1 word of space starting at address C
+D        DC       'END'         ; Store the string 'END' starting at address D
+E        DC       3             ; Store 3 in address E
+         END
+
+
+
+
+2.2 Explanation of Each Field by Function
+2.2.1 The Label Field
+A label is similar to a statement number in FORTRAN in that it marks a specific location. Or, as seen in examples so far, it serves the role of a variable name. In practice, programs use them in a way that resembles FORTRAN statement numbers or variable names. In CASL II, a label actually represents an address. This address is determined as follows, according to the instruction that succeeds it.
+
+In the case of a machine instruction, the label represents the starting address of the 2-word area where that machine instruction is stored. In an actual program, it's used with jump instructions to transfer control to that address, which is the same as a GO TO statement in FORTRAN that goes to a statement number.
+
+In the case of a DC instruction, the label indicates the starting address of the area where a constant is stored. Its usage is similar to a variable name in FORTRAN, but in reality, it is an address.
+
+In the case of a DS instruction, the label represents the starting address of the main memory area secured by this instruction. This is the same as an array declaration in the C language.
+
+In the case of an IN or OUT macro instruction, the label indicates the address where the first instruction of the macro's instruction group is stored.
+
+It's simple if you can understand that a label represents an address. You just need to interpret it with common sense.
+
+As written in the textbook, the conventions for describing a label are:
+
+If a label is not necessary for the program's logic, you don't have to write one.
+A label must be described within 8 characters. The first character must be an uppercase letter. The second character and beyond can be either uppercase letters or numbers.
+You must always start from the first column (character 1). If the first character position is blank, it is considered to have no label, and the text is interpreted as an operation code.
+The names of the general-purpose registers, GR0 to GR7, are reserved words and cannot be used as labels. This is to make it possible to distinguish between a label and a register in an operand of an operation code.
+Important Points
+As you learned before, an assembler program processes data stored in main memory (performing various operations). A program's instructions are also stored in main memory. To access the data or instructions stored in main memory, the program specifies a memory address. Therefore, in assembly, addresses are crucial, and the programmer must be conscious of them.
+
+In high-level languages, the compiler handles matters related to addresses automatically, which is a blessing. For example, when using a variable in FORTRAN, the programmer doesn't need to pay attention to that variable's address. This is because the compiler maintains a table of the relationship between variable names and their addresses and skillfully converts them into machine instructions according to that table.
+
+In assembly, the programmer must think about the relationship between variables and addresses in place of the compiler. It's not that difficult.
+
+
+
+2.2.2 The Operation Code Field
+In this field, you write an assembler instruction (a non-executable statement), a machine instruction, or a macro instruction. As noted in the textbook, the conventions for writing them are as follows:
+
+Write the operation code after one or more spaces following a label.
+If there is no label, write the operation code preceded by one or more spaces.
+2.2.3 The Operand Field
+In this field, you write the instruction's operand. An operand is the address, register, or data that an instruction targets. In CASL II, operands can be general-purpose register numbers, symbolic addresses (i.e., labels), absolute addresses, characters, or integers. The method for writing them, as described in the textbook, is as follows:
+
+Write the operand after one or more spaces following the operation code.
+Separate multiple operands with a comma (,) and write them consecutively. Do not put spaces in between them.
+
+
+
+
+2.2.4 The Comment Field
+By writing a semicolon (;) on a line, everything from that point to the end of the line is treated as a comment. 📝 Just like comments in FORTRAN, they have no effect on the program's execution. Comments are most often used to make the content of a program easier to understand. They can also be used for debugging by adding a semicolon to the beginning of a line to prevent it from being executed.
+
+If a line starts with a semicolon, or if there are only spaces before the semicolon, the entire line becomes a comment.
+If there is one or more spaces after an operand, everything from that point onward becomes a comment.
+
+
+
+
+3. Instruction List
+3.1 Assembler Instructions
+Function	Format	Operational Details	Flag Register Changes
+Program Start	START [execution start address]	Indicates the start of the program. Must be written at the very beginning of the program.	
+Program End	END	Indicates the end of the program. A label cannot be used. Must be written at the very end of the program.	
+Store Constant	DC n&lt;br>DC #h&lt;br>DC 'character string'&lt;br>DC label_name	Store a decimal constant at the label's address.&lt;br>Store a hexadecimal constant at the label's address.&lt;br>Store a character string starting from the label's address.&lt;br>Store the address indicated by the label name.	
+Secure Area	DS n	Secures an area of n words starting from the address indicated by the label name.	
+Note
+
+The value of the flag register is never set by assembler instructions. This is because assembler instructions do not operate during program execution.
+
+
+Of course. Here is the translated list of CASL II machine instructions from the image.
+
+3.2 Machine Instructions
+Load (LD)
+Format	Operational Details	Flag Register Changes
+LD r1, r2	Copies the value of register r2 to register r1.	Set as follows based on the copied value: &lt;br> • OF: 0 &lt;br> • SF: 1 if negative (bit 15 is 1); 0 if positive (bit 15 is 0). &lt;br> • ZF: 1 if zero (all bits are 0); 0 otherwise.
+LD r, adr[,x]	Copies the content of main memory at address adr[,x] to register r.	
+Store (ST)
+Format	Operational Details	Flag Register Changes
+ST r, adr[,x]	Copies the content of register r to the main memory address adr[,x].	No change.
+Load Address (LAD)
+Format	Operational Details	Flag Register Changes
+LAD r, adr[,x]	Copies the effective address value of adr[,x] to register r.	No change.
+Arithmetic Add (ADDA)
+Format	Operational Details	Flag Register Changes
+ADDA r1, r2	Performs a signed addition of r1 and r2. &lt;br> r1 ← r1 + r2	Set as follows based on the operation result: &lt;br> • OF: 1 if result is outside the range -32768 to 32767; 0 if within range. &lt;br> • SF: 1 if negative; 0 if positive. &lt;br> • ZF: 1 if zero; 0 otherwise.
+ADDA r, adr[,x]	Performs a signed addition of register r and the content of memory at adr[,x]. &lt;br> r ← r + (content of adr[,x])	
+Arithmetic Subtract (SUBA)
+Format	Operational Details	Flag Register Changes
+SUBA r1, r2	Performs a signed subtraction of r2 from r1. &lt;br> r1 ← r1 - r2	Set as follows based on the operation result: &lt;br> • OF: 1 if result is outside the range -32768 to 32767; 0 if within range. &lt;br> • SF: 1 if negative; 0 if positive. &lt;br> • ZF: 1 if zero; 0 otherwise.
+SUBA r, adr[,x]	Performs a signed subtraction of the content of memory at adr[,x] from register r. &lt;br> r ← r - (content of adr[,x])	
+Logical Add (ADDL)
+Format	Operational Details	Flag Register Changes
+ADDL r1, r2	Performs an unsigned addition of r1 and r2. &lt;br> r1 ← r1 + r2	Set as follows based on the operation result: &lt;br> • OF: 1 if result is outside the range 0 to 65535; 0 if within range. &lt;br> • SF: 1 if negative; 0 if positive. &lt;br> • ZF: 1 if zero; 0 otherwise.
+ADDL r, adr[,x]	Performs an unsigned addition of register r and the content of memory at adr[,x]. &lt;br> r ← r + (content of adr[,x])	
+Logical Subtract (SUBL)
+Format	Operational Details	Flag Register Changes
+SUBL r1, r2	Performs an unsigned subtraction of r2 from r1. &lt;br> r1 ← r1 - r2	Set as follows based on the operation result: &lt;br> • OF: 1 if result is outside the range 0 to 65535; 0 if within range. &lt;br> • SF: 1 if negative; 0 if positive. &lt;br> • ZF: 1 if zero; 0 otherwise.
+SUBL r, adr[,x]	Performs an unsigned subtraction of the content of memory at adr[,x] from register r. &lt;br> r ← r - (content of adr[,x])	
+Logical Operations (AND, OR, XOR)
+Function	Format	Operational Details	Flag Register Changes
+Logical AND	AND r1, r2&lt;br>AND r, adr[,x]	Performs a bitwise logical AND. The result is stored in r1 or r.	Set as follows based on the operation result: &lt;br> • OF: 0 &lt;br> • SF: 1 if negative; 0 if positive. &lt;br> • ZF: 1 if zero; 0 otherwise.
+Logical OR	OR r1, r2&lt;br>OR r, adr[,x]	Performs a bitwise logical OR. The result is stored in r1 or r.	
+Exclusive OR	XOR r1, r2&lt;br>XOR r, adr[,x]	Performs a bitwise exclusive OR. The result is stored in r1 or r.	
+Compare Operations (CPA, CPL)
+Function	Format	Operational Details	Flag Register Changes
+Compare Arithmetic	CPA r1, r2&lt;br>CPA r, adr[,x]	Compares two values as signed integers by performing a subtraction. The result is not stored, but the flags are set.	Based on r1 - r2 or r - (content of adr[,x]): &lt;br> • OF: Set for overflow. &lt;br> • SF: Set if result is negative (r1 < r2). &lt;br> • ZF: Set if result is zero (r1 = r2).
+Compare Logical	CPL r1, r2&lt;br>CPL r, adr[,x]	Compares two values as unsigned integers by performing a subtraction. The result is not stored, but the flags are set.	Based on r1 - r2 or r - (content of adr[,x]): &lt;br> • OF: 0 &lt;br> • SF: Set if result is negative (r1 < r2). &lt;br> • ZF: Set if result is zero (r1 = r2).
+
+
+
+
+Arithmetic Left Shift	SLA r, adr[,x]	Shifts each bit of register r (excluding the sign bit) to the left by the number of places specified by the address adr[,x]. Empty bits are filled with 0.	OF: The value of the last bit shifted out.&lt;br>SF: 1 if negative (bit 15 is 1); 0 if positive (bit 15 is 0).&lt;br>ZF: 1 if zero (all bits are 0); 0 otherwise.
+Arithmetic Right Shift	SRA r, adr[,x]	Shifts each bit of register r (excluding the sign bit) to the right by the number of places specified by the address adr[,x]. Empty bits are filled with the value of the sign bit.	OF: 0&lt;br>SF: 1 if negative (bit 15 is 1); 0 if positive (bit 15 is 0).&lt;br>ZF: 1 if zero (all bits are 0); 0 otherwise.
+Logical Left Shift	SLL r, adr[,x]	Shifts each bit of register r to the left by the number of places specified by the address adr[,x]. Empty bits are filled with 0.	OF: The value of the last bit shifted out.&lt;br>SF: 1 if negative (bit 15 is 1); 0 if positive (bit 15 is 0).&lt;br>ZF: 1 if zero (all bits are 0); 0 otherwise.
+Logical Right Shift	SRL r, adr[,x]	Shifts each bit of register r to the right by the number of places specified by the address adr[,x]. Empty bits are filled with 0.	OF: 0&lt;br>SF: 1 if negative (bit 15 is 1); 0 if positive (bit 15 is 0).&lt;br>ZF: 1 if zero (all bits are 0); 0 otherwise.
+Jump on Positive	JPL adr[,x]	When both SF and ZF are 0 (result is positive), branches to address adr[,x].	No change.
+Jump on Negative	JMI adr[,x]	When SF is 1 (result is negative), branches to address adr[,x].	No change.
+Jump on Not Zero	JNZ adr[,x]	When ZF is 0 (result is not equal), branches to address adr[,x].	No change.
+Jump on Zero	JZE adr[,x]	When ZF is 1 (result is equal), branches to address adr[,x].	No change.
+Jump on Overflow	JOV adr[,x]	When OF is 1 (overflow), branches to address adr[,x].	No change.
+Unconditional Jump	JUMP adr[,x]	Unconditionally branches to address adr[,x].	No change.
+Push	PUSH adr[,x]	Stores the address adr[,x] in the stack area.	No change.
+Pop	POP r	Retrieves data from the stack area and stores it in register r.	No change.
+Call	CALL adr[,x]	Calls a subroutine. Execution transfers to adr[,x].	No change.
+Return	RET	Execution transfers from a subroutine back to the calling routine.	No change.
+Supervisor Call	SVC adr[,x]	Calls an OS function. Used in the IN and OUT macro instructions.	Undefined. Depends on the OS.
+No Operation	NOP	An instruction that performs no action.	No change.
+
+
+3.3 Macro Instructions
+Function	Format	Operational Details	Flag Register Changes
+Input Instruction	IN label1, label2	Reads character data from an input device into the input area (label1). The length of the input string is stored in label2.	Undefined. Depends on the OS.
+Output Instruction	OUT label1, label2	Sends character data from the output area (label1) to an output device. The number of characters to send is indicated by label2.	Undefined. Depends on the OS.
+Save Registers	RPUSH	Stores the contents of the general-purpose registers in the stack area in the order GR1 → GR7.	Undefined. Depends on the OS.
+Restore Registers	RPOP	Stores the contents of the stack area into the general-purpose registers in the order GR7 → GR1.	Undefined. Depends on the OS.
+
+
+
+
