@@ -1,4 +1,5 @@
 import re
+from operands import OPCODE_MAP, REGISTER_MAP
 
 class Compiler:
     """
@@ -13,45 +14,50 @@ class Compiler:
         self.machine_code = []
         self.start_address = 0
 
-        # Defines the properties of each recognized machine instruction and directive.
-        # Format: {mnemonic: (hex_opcode, length_in_words)}
-        self.OPCODE_MAP = {
-            # Assembler Directives
-            'START': ('', 0),
-            'END':   ('', 0),
-            'DS':    ('', 0),  # Length is variable, handled in first_pass
-            'DC':    ('', 1),  # Length is variable, handled in first_pass
-
-            # Machine Instructions
-            'LD':    ('10', 2),
-            'ST':    ('11', 2),
-            'ADDA':  ('30', 2),
-            'JUMP':  ('60', 2),
-            'RET':   ('81', 1),
-            'NOP':   ('00', 1)
-        }
+        # Use the imported maps
+        self.OPCODE_MAP = OPCODE_MAP
+        self.REGISTER_MAP = REGISTER_MAP
 
         # Maps opcodes to their corresponding handler function for the second pass.
-        # This allows for modular processing of different instruction formats.
         self.instruction_handlers = {
-            # Format: OPCODE r, adr
+            # Format: OPCODE r, adr (or r1, r2)
             'LD': self._handle_format_r_adr,
             'ST': self._handle_format_r_adr,
+            'LAD': self._handle_format_r_adr,
             'ADDA': self._handle_format_r_adr,
+            'SUBA': self._handle_format_r_adr,
+            'ADDL': self._handle_format_r_adr,
+            'SUBL': self._handle_format_r_adr,
+            'AND': self._handle_format_r_adr,
+            'OR': self._handle_format_r_adr,
+            'XOR': self._handle_format_r_adr,
+            'CPA': self._handle_format_r_adr,
+            'CPL': self._handle_format_r_adr,
+            'SLA': self._handle_format_r_adr,
+            'SRA': self._handle_format_r_adr,
+            'SLL': self._handle_format_r_adr,
+            'SRL': self._handle_format_r_adr,
 
             # Format: OPCODE adr
             'JUMP': self._handle_format_adr,
+            'JPL': self._handle_format_adr,
+            'JMI': self._handle_format_adr,
+            'JNZ': self._handle_format_adr,
+            'JZE': self._handle_format_adr,
+            'JOV': self._handle_format_adr,
+            'PUSH': self._handle_format_adr,
+            'CALL': self._handle_format_adr,
+            'SVC': self._handle_format_adr,
 
-            # Format: No operands
+            # Format: No operands (or single register)
+            'POP': self._handle_no_operand, # Will need a slight modification
             'RET': self._handle_no_operand,
             'NOP': self._handle_no_operand,
             
             # Special Directives
             'DC': self._handle_dc
         }
-        
-        # Maps general register names to their 4-bit numeric representation.
-        self.REGISTER_MAP = {f'GR{i}': i for i in range(8)}
+
 
     def compile(self, source_code):
         """
@@ -190,20 +196,29 @@ class Compiler:
 
     def _handle_format_r_adr(self, instruction):
         """
-        Generates code for instructions like 'LD r, adr'.
-        Format: [Opcode][r][x] [Address]
+        Generates code for instructions like 'LD r, adr' or 'ADDA r1, r2'.
+        Format: [Opcode][r][x] [Address/Register]
         """
         op_hex = self.OPCODE_MAP[instruction['opcode']][0]
         operands = instruction['operands']
         
         r_val = self.REGISTER_MAP[operands[0]]
-        address = self.symbol_table[operands[1]]
-        x_val = 0 # Index register is not implemented, default to 0.
-        
-        # Construct the two words of machine code.
+        x_val = 0  # Index register is not implemented, default to 0.
+
+        # Check if the second operand is a register or a symbol
+        if operands[1] in self.REGISTER_MAP:
+            # It's a register-to-register instruction (e.g., LD GR1, GR2)
+            # The second operand register becomes the x_val
+            x_val = self.REGISTER_MAP[operands[1]]
+            second_word = "0000" # No memory address needed
+        else:
+            # It's a register-memory instruction (e.g., LD GR1, A)
+            address = self.symbol_table[operands[1]]
+            second_word = f"{address:04X}"
+
         first_word = f"{op_hex}{r_val}{x_val}"
-        second_word = f"{address:04X}" # Format address as 4-digit uppercase hex.
         self.machine_code.extend([first_word, second_word])
+
 
     def _handle_format_adr(self, instruction):
         """
@@ -224,13 +239,18 @@ class Compiler:
 
     def _handle_no_operand(self, instruction):
         """
-        Generates code for single-word instructions like 'RET'.
-        Format: [Opcode][r][x], where r and x are 0.
+        Generates code for single-word instructions like 'RET' or 'POP r'.
         """
         op_hex = self.OPCODE_MAP[instruction['opcode']][0]
+        r_val = 0
+        x_val = 0
+
+        # POP is a special case that has one register operand
+        if instruction['opcode'] == 'POP':
+            if instruction['operands']:
+                r_val = self.REGISTER_MAP[instruction['operands'][0]]
         
-        # Construct the single word of machine code.
-        machine_word = f"{op_hex}00" # r and x fields are zero.
+        machine_word = f"{op_hex}{r_val}{x_val}"
         self.machine_code.append(machine_word)
 
     def _handle_dc(self, instruction):
@@ -250,6 +270,8 @@ if __name__ == "__main__":
     casl_program = """
     PGM      START
              LD    GR1,A      ; Load value at address A into GR1
+             LD    GR1,GR2    ; Load value at address GR2 into GR1
+             LAD   GR1,B      ; Load address B into GR1
              ADDA  GR1,B      ; Add value at address B to GR1
              ST    GR1,C      ; Store the result from GR1 into address C
     A        DC    3          ; Define constant A with value 3
